@@ -38,8 +38,6 @@ def ask_with_retry(provider, messages):
             response = provider["client"].chat.completions.create(
             model=provider["model"],
             messages=messages,
-            temperature=0.7,
-            max_tokens=500,
             stream=True,
             stream_options={"include_usage": True}
         )
