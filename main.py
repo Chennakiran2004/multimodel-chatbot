@@ -16,7 +16,7 @@ load_dotenv()
 providers = [
     {
         "name": "Gemini",
-        "model": "gemini-3.5-flash",
+        "model": "gemini-2.5-flash",
         "client": OpenAI(
             api_key=os.getenv("GEMINI_API_KEY"),
             base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
@@ -38,6 +38,8 @@ def ask_with_retry(provider, messages):
             response = provider["client"].chat.completions.create(
             model=provider["model"],
             messages=messages,
+            temperature=0.7,
+            max_tokens=500,
             stream=True,
             stream_options={"include_usage": True}
         )
@@ -152,7 +154,4 @@ def main():
         else:
             messages.pop()
 
-
-if __name__ == "__main__":
-    main()
-
+main()
