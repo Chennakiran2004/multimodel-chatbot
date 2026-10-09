@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f6f2">
+  <title>Relay | Multi-model chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f4f6f2;
+      --surface: #ffffff;
+      --ink: #202a25;
+      --muted: #727d76;
+      --line: #e3e8e2;
+      --green: #246b50;
+      --green-dark: #194c39;
+      --lime: #d8f1a8;
+      --coral: #e6785d;
+      --user: #e9f3eb;
+      --shadow: 0 16px 48px rgba(32, 54, 40, .08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse at 12% 12%, rgba(216, 241, 168, .32), transparent 34rem),
+        radial-gradient(ellipse at 91% 83%, rgba(230, 120, 93, .10), transparent 27rem),
+        var(--paper);
+      color: var(--ink);
+      font-family: "DM Sans", sans-serif;
+    }
+
+    button, textarea { font: inherit; }
+
+    .app-shell {
+      width: min(100%, 1120px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      height: 78px;
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(32, 42, 37, .09);
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background: var(--green);
+      color: white;
+    }
+
+    .brand-name {
+      font: 800 17px/1 "Manrope", sans-serif;
+      letter-spacing: 0;
+    }
+
+    .brand-note { margin-top: 4px; color: var(--muted); font-size: 11px; }
+
+    .topbar-actions { display: flex; align-items: center; gap: 12px; }
+
+    .provider-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 11px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, .72);
+      color: #546158;
+      font-size: 12px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #59a875;
+      box-shadow: 0 0 0 3px rgba(89, 168, 117, .12);
+    }
+
+    .new-chat {
+      min-height: 38px;
+      padding: 0 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: border-color .16s ease, transform .16s ease;
+    }
+
+    .new-chat:hover { border-color: #9bb4a2; transform: translateY(-1px); }
+    .new-chat:focus-visible, .send:focus-visible, .suggestion:focus-visible, textarea:focus-visible { outline: 3px solid rgba(36, 107, 80, .24); outline-offset: 2px; }
+
+    main {
+      width: min(100%, 760px);
+      flex: 1 0 auto;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .conversation {
+      flex: 1;
+      padding: 34px 4px 28px;
+    }
+
+    .welcome {
+      min-height: min(58vh, 510px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 10px 0 24px;
+      animation: arrive .48s ease both;
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .eyebrow-line { width: 24px; height: 1px; background: var(--coral); }
+
+    h1 {
+      max-width: 610px;
+      margin: 17px 0 12px;
+      font: 700 clamp(34px, 5vw, 52px)/1.08 "Manrope", sans-serif;
+      letter-spacing: 0;
+    }
+
+    h1 span { color: var(--green); }
+
+    .welcome-copy {
+      max-width: 470px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    .suggestions {
+      width: 100%;
+      margin-top: 34px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .suggestion {
+      min-height: 92px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .74);
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .16s ease, background .16s ease, transform .16s ease;
+    }
+
+    .suggestion:hover { border-color: #a9c1ae; background: white; transform: translateY(-2px); }
+    .suggestion-label { font-size: 12px; font-weight: 600; line-height: 1.45; }
+    .suggestion-arrow { align-self: flex-end; color: var(--green); font-size: 16px; }
+
+    .messages { display: flex; flex-direction: column; gap: 24px; }
+    .message { display: flex; gap: 12px; animation: arrive .24s ease both; }
+    .message.user { justify-content: flex-end; }
+
+    .avatar {
+      width: 30px;
+      height: 30px;
+      flex: 0 0 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      background: var(--green);
+      color: white;
+    }
+
+    .message-body { max-width: min(86%, 620px); }
+    .message.user .message-body { max-width: min(82%, 580px); }
+    .message-label { margin: 0 0 6px; color: var(--muted); font-size: 11px; font-weight: 600; }
+
+    .bubble {
+      padding: 12px 15px;
+      border: 1px solid var(--line);
+      border-radius: 3px 12px 12px 12px;
+      background: var(--surface);
+      color: #364139;
+      font-size: 14px;
+      line-height: 1.65;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+      box-shadow: 0 3px 10px rgba(32, 54, 40, .025);
+    }
+
+    .message.user .bubble {
+      border-color: #d8e8d9;
+      border-radius: 12px 3px 12px 12px;
+      background: var(--user);
+    }
+
+    .message.error .bubble { border-color: #f0c8bb; background: #fff5f1; color: #8a4634; }
+    .typing { color: var(--muted); }
+
+    .composer-wrap { padding: 0 0 22px; }
+
+    .composer {
+      padding: 10px 10px 10px 15px;
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      border: 1px solid #dce3dc;
+      border-radius: 9px;
+      background: white;
+      box-shadow: var(--shadow);
+      transition: border-color .16s ease;
+    }
+
+    .composer:focus-within { border-color: #8caf96; }
+
+    textarea {
+      width: 100%;
+      min-height: 36px;
+      max-height: 160px;
+      padding: 8px 0;
+      resize: none;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    textarea::placeholder { color: #9ba49d; }
+
+    .send {
+      width: 38px;
+      height: 38px;
+      flex: 0 0 38px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 7px;
+      background: var(--green);
+      color: white;
+      cursor: pointer;
+      transition: background .16s ease, transform .16s ease;
+    }
+
+    .send:hover:not(:disabled) { background: var(--green-dark); transform: translateY(-1px); }
+    .send:disabled { background: #a9b8ac; cursor: wait; }
+    .composer-note { margin: 9px 0 0; color: #8a948d; font-size: 11px; text-align: center; }
+
+    @keyframes arrive {
+      from { opacity: 0; transform: translateY(7px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+
+    @media (max-width: 640px) {
+      .app-shell { padding: 0 17px; }
+      .topbar { height: 66px; }
+      .brand-note, .provider-status span:last-child { display: none; }
+      .provider-status { width: 31px; height: 31px; justify-content: center; padding: 0; }
+      .topbar-actions { gap: 8px; }
+      .new-chat { width: 36px; min-height: 36px; padding: 0; justify-content: center; font-size: 0; }
+      .conversation { padding: 18px 0 22px; }
+      .welcome { min-height: 53vh; }
+      h1 { max-width: 440px; font-size: 38px; }
+      .welcome-copy { font-size: 14px; }
+      .suggestions { grid-template-columns: 1fr; gap: 8px; margin-top: 24px; }
+      .suggestion { min-height: 58px; flex-direction: row; align-items: center; gap: 10px; }
+      .suggestion-arrow { flex: 0 0 auto; }
+      .composer-wrap { padding-bottom: 14px; }
+      .message-body { max-width: 88%; }
+      .message.user .message-body { max-width: 86%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand" aria-label="Relay multi-model chat">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M5 7h9a4 4 0 0 1 0 8H9m0 0 3-3m-3 3 3 3M19 17h-4a3 3 0 0 1-3-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <div class="brand-name">Relay</div>
+          <div class="brand-note">Multi-model assistant</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <div class="provider-status" title="Gemini first, OpenAI fallback">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span>Gemini · OpenAI fallback</span>
+        </div>
+        <button class="new-chat" id="new-chat" type="button" title="Start a new chat">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          New chat
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="conversation" id="conversation" aria-live="polite" aria-label="Conversation">
+        <div class="welcome" id="welcome">
+          <div class="eyebrow"><span class="eyebrow-line"></span> One conversation, two models</div>
+          <h1>A little more<br><span>thinking power.</span></h1>
+          <p class="welcome-copy">Ask away. Relay tries Gemini first and switches to OpenAI if needed, keeping your conversation together.</p>
+          <div class="suggestions" aria-label="Suggested prompts">
+            <button class="suggestion" type="button" data-prompt="Help me break a big project into a clear first week plan."><span class="suggestion-label">Turn a big project into a first-week plan</span><span class="suggestion-arrow" aria-hidden="true">↗</span></button>
+            <button class="suggestion" type="button" data-prompt="Explain a difficult idea in plain language, then give me an example."><span class="suggestion-label">Make a difficult idea easier to understand</span><span class="suggestion-arrow" aria-hidden="true">↗</span></button>
+            <button class="suggestion" type="button" data-prompt="Help me compare two options. Ask me what matters before recommending one."><span class="suggestion-label">Think through a decision with me</span><span class="suggestion-arrow" aria-hidden="true">↗</span></button>
+          </div>
+        </div>
+        <div class="messages" id="messages"></div>
+      </section>
+
+      <div class="composer-wrap">
+        <form class="composer" id="chat-form">
+          <textarea id="prompt" rows="1" aria-label="Message" placeholder="Message Relay..."></textarea>
+          <button class="send" id="send" type="submit" aria-label="Send message" title="Send message">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h13m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </form>
+        <p class="composer-note">Enter to send · Shift + Enter for a new line</p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const form = document.querySelector("#chat-form");
+    const input = document.querySelector("#prompt");
+    const sendButton = document.querySelector("#send");
+    const messagesElement = document.querySelector("#messages");
+    const welcome = document.querySelector("#welcome");
+    let messages = [{ role: "system", content: "You are a helpful assistant." }];
+
+    function addMessage(role, content, options = {}) {
+      const row = document.createElement("article");
+      row.className = `message ${role}${options.error ? " error" : ""}`;
+
+      if (role === "assistant") {
+        const avatar = document.createElement("div");
+        avatar.className = "avatar";
+        avatar.setAttribute("aria-hidden", "true");
+        avatar.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 7h9a4 4 0 0 1 0 8H9m0 0 3-3m-3 3 3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        row.append(avatar);
+      }
+
+      const body = document.createElement("div");
+      body.className = "message-body";
+      const label = document.createElement("p");
+      label.className = "message-label";
+      label.textContent = role === "user" ? "You" : options.pending ? "Relay is thinking" : "Relay";
+      const bubble = document.createElement("div");
+      bubble.className = `bubble${options.pending ? " typing" : ""}`;
+      bubble.textContent = content;
+      body.append(label, bubble);
+      row.append(body);
+      messagesElement.append(row);
+      row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return { row, label, bubble };
+    }
+
+    async function sendMessage(text) {
+      const content = text.trim();
+      if (!content || sendButton.disabled) return;
+      welcome.hidden = true;
+      messages.push({ role: "user", content });
+      addMessage("user", content);
+      input.value = "";
+      input.style.height = "auto";
+      sendButton.disabled = true;
+      const pending = addMessage("assistant", "", { pending: true });
+      let answer = "";
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages })
+        });
+        if (!response.ok || !response.body) throw new Error("The request could not be completed.");
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+          buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+          const frames = buffer.split(/\r?\n\r?\n/);
+          buffer = frames.pop();
+
+          for (const frame of frames) {
+            const line = frame.split(/\r?\n/).find((part) => part.startsWith("data: "));
+            if (!line) continue;
+            const event = JSON.parse(line.slice(6));
+
+            if (event.type === "chunk") {
+              answer += event.content;
+              pending.bubble.textContent = answer;
+              pending.row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            } else if (event.type === "reset") {
+              answer = "";
+              pending.bubble.textContent = "";
+            } else if (event.type === "error") {
+              throw new Error(event.message);
+            }
+          }
+
+          if (done) break;
+        }
+
+        pending.label.textContent = "Relay";
+        pending.bubble.classList.remove("typing");
+        messages.push({ role: "assistant", content: answer });
+      } catch (error) {
+        messages.pop();
+        pending.row.remove();
+        addMessage("assistant", error.message || "Something went wrong. Try again.", { error: true });
+      } finally {
+        sendButton.disabled = false;
+        input.focus();
+      }
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      sendMessage(input.value);
+    });
+
+    input.addEventListener("input", () => {
+      input.style.height = "auto";
+      input.style.height = `${Math.min(input.scrollHeight, 160)}px`;
+    });
+
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        form.requestSubmit();
+      }
+    });
+
+    document.querySelectorAll("[data-prompt]").forEach((button) => {
+      button.addEventListener("click", () => sendMessage(button.dataset.prompt));
+    });
+
+    document.querySelector("#new-chat").addEventListener("click", () => {
+      messages = [{ role: "system", content: "You are a helpful assistant." }];
+      messagesElement.replaceChildren();
+      welcome.hidden = false;
+      input.value = "";
+      input.style.height = "auto";
+      input.focus();
+    });
+  </script>
+</body>
+</html>
